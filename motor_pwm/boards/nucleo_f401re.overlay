@@ -1,0 +1,18 @@
+/ {
+	servo: servo {
+		compatible = "pwm-servo";
+		pwms = <&pwm3 1 PWM_USEC(500) PWM_POLARITY_NORMAL>;
+		min-pulse = <PWM_USEC(700)>;
+		max-pulse = <PWM_USEC(1500)>;
+	};
+};
+
+&timers3 {
+	status = "okay";
+
+pwm3: pwm {
+		status = "okay";        
+		pinctrl-0 = <&tim3_ch1_pa6>;
+		pinctrl-names = "default";
+	};
+};

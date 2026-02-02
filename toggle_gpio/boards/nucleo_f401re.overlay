@@ -1,0 +1,7 @@
+/ {
+    my_out: my_out {
+        compatible = "power-switch";
+        gpios = <&gpioa 0 GPIO_ACTIVE_LOW>;
+
+    };
+};
