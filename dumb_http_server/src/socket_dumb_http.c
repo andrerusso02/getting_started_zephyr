@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-
 #if !defined(__ZEPHYR__) || defined(CONFIG_POSIX_API)
 
 #include <netinet/in.h>
@@ -58,7 +57,6 @@ static void sleep_after_error(unsigned int amount)
 int main(void)
 {
 	printk("Starting dumb HTTP server sample\n");
-	return;
 
 	
 	int serv;
