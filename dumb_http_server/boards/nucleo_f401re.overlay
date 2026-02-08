@@ -3,3 +3,9 @@
         zephyr,ppp-uart = &usart1;
     };
 };
+
+
+// PPP: improved ping from 25ms to 3.5ms
+&usart1 {
+	current-speed = <1000000>; 
+};

@@ -15,5 +15,5 @@ west build -p always -b nucleo_f401re workspace/getting_started/dumb_http_server
 ```
 
 ```
-sudo pppd /dev/ttyACM1 115200 192.0.2.2:192.0.2.1 local noauth passive nodetach nocrtscts local dump debug
+sudo pppd /dev/ttyACM1 1000000 192.0.2.2:192.0.2.1 local noauth passive nodetach nocrtscts local dump debug
 ```
