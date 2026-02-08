@@ -1,6 +1,4 @@
-
 &mac {
-    status = "disabled";
     pinctrl-0 = <
         &eth_rx_clk_pa1
         &eth_rx_dv_pa7
@@ -24,9 +22,9 @@
 };
 
 &mdio {
-    status = "disabled";
     // In Zephyr's build system, DTS status inheritance works for driver initialization but doesn't
     // always prevent the C header generation from creating references.
+    // So we need to disable eth_phy here even mdio is disabled already.
     eth_phy: ethernet-phy@1 {
         compatible = "ethernet-phy";
         reg = <1>;
@@ -37,8 +35,7 @@
 };
 
 
-// The usbd Shell hardcodes the use of the label zephyr_udc0 at zephyr/subsys/usb/device_next/usbd_shell.c:49
-zephyr_udc0: &usbotg_fs {
+&usbotg_fs {
     pinctrl-0 = <
         &usb_otg_fs_sof_pa8
         /*&usb_otg_fs_vbus_pa9*/ /* VBUS sensing, Commented out to make it work */
@@ -47,17 +44,4 @@ zephyr_udc0: &usbotg_fs {
         &usb_otg_fs_dp_pa12
     >;
     pinctrl-names = "default";
-    status = "okay";
-};
-
-/ {
-    cdc_ncm_eth0: cdc_ncm_eth0 {
-        compatible = "zephyr,cdc-ncm-ethernet";
-        remote-mac-address = "00005E005301";  // Apparently any could work
-    };
-};
-
-// Required for the USB controller to work.
-&clk_hsi48 {
-    status = "okay";
 };
