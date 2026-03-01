@@ -17,21 +17,24 @@
 #define DEST_ADDR "255.255.255.255" // Linux PC IP (broadcast)
 #define SERVER_PORT 5005
 
-struct imu_data {
-    float accel[3];
-    float gyro[3];
+struct range_image {
+    float num_zones ;
+    float distances[64];
 };
 
+int vl53l5cx_get_range_array(const struct device *dev, struct sensor_value buff, int num_zones, float *output_array) {
+    for (int i = 0; i < num_zones; i++) {
+        sensor_channel_get(dev, (enum sensor_channel)(SENSOR_CHAN_VL53L5CX_DISTANCE_BASE + i), &buff);
+        output_array[i] = buff.val1 + buff.val2 / 1000.0f;
+    }
+    return 0;
+}
 
 int main(void)
 {
 
     int sock;
     struct sockaddr_in destination_addr;
-    struct imu_data my_imu = {
-        .accel = {0.1f, 0.2f, 9.8f},
-        .gyro  = {0.01f, 0.02f, 0.03f}
-    };
 
     // Create UDP socket
     sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -44,77 +47,60 @@ int main(void)
     destination_addr.sin_port = htons(SERVER_PORT);
     inet_pton(AF_INET, DEST_ADDR, &destination_addr.sin_addr);
 
-    while (1) {
-        // Send the struct as a raw binary buffer
-        sendto(sock, &my_imu, sizeof(my_imu), 0,
-               (struct sockaddr *)&destination_addr, sizeof(destination_addr));
+    const struct device *dev = DEVICE_DT_GET_ANY(st_vl53l5cx);
+    struct sensor_value enable = { .val1 = 1 };
+    struct sensor_value buff_sensor_value;
+    struct range_image img;
+	int ret;
 
-        k_msleep(10); // 100Hz transmission
+    if (!device_is_ready(dev)) {
+        printf("Sensor device not ready\n");
+        return 0;
     }
 
+    ret = sensor_attr_set(dev, SENSOR_CHAN_ALL, (enum sensor_attribute)SENSOR_ATTR_VL53L5CX_RANGING_STATE, &enable);
+    if (ret != 0) {
+        printf("Failed to start ranging: %d\n", ret);
+        return 0;
+    }
 
-    // const struct device *dev = DEVICE_DT_GET_ANY(st_vl53l5cx);
-    // struct sensor_value enable = { .val1 = 1 };
-    // struct sensor_value result_value;
-	// int ret;
+    printf("VL53L5CX Ranging Started...\n");
 
-    // if (!device_is_ready(dev)) {
-    //     printf("Sensor device not ready\n");
-    //     return 0;
-    // }
+    buff_sensor_value = (struct sensor_value){0};
+	ret =sensor_attr_get(dev, SENSOR_CHAN_ALL, SENSOR_ATTR_RESOLUTION, &buff_sensor_value);
+    if (ret != 0) {
+        printf("Failed to get resolution: %d\n", ret);
+		return 0;
+    }
+	int num_zones = buff_sensor_value.val1;
 
-    // ret = sensor_attr_set(dev, SENSOR_CHAN_ALL, (enum sensor_attribute)SENSOR_ATTR_VL53L5CX_RANGING_STATE, &enable);
-    // if (ret != 0) {
-    //     printf("Failed to start ranging: %d\n", ret);
-    //     return 0;
-    // }
+	buff_sensor_value = (struct sensor_value){0};
+	ret = sensor_attr_get(dev, SENSOR_CHAN_ALL, SENSOR_ATTR_SAMPLING_FREQUENCY, &buff_sensor_value);
+	if (ret != 0) {
+		printf("Failed to get sampling frequency: %d\n", ret);
+		return 0;
+	}
+	int freq_hz = buff_sensor_value.val1;
 
-    // printf("VL53L5CX Ranging Started...\n");
+	printf("VL53L5CX Resolution: %dx%d (%d zones)\n", 
+			 num_zones == 64 ? 8 : 4, 
+			 num_zones == 64 ? 8 : 4, 
+			 num_zones);
+	printf("VL53L5CX Sampling Frequency: %d Hz\n", freq_hz);
 
-    // result_value = (struct sensor_value){0};
-	// ret =sensor_attr_get(dev, SENSOR_CHAN_ALL, SENSOR_ATTR_RESOLUTION, &result_value);
-    // if (ret != 0) {
-    //     printf("Failed to get resolution: %d\n", ret);
-	// 	return 0;
-    // }
-	// int num_zones = result_value.val1;
+    while (1) {
+        ret = sensor_sample_fetch(dev);
+        if (ret != 0) {
+            printf("Fetch failed: %d\n", ret);
+            k_msleep(1000/freq_hz);
+            continue;
+        }
 
-	// result_value = (struct sensor_value){0};
-	// ret = sensor_attr_get(dev, SENSOR_CHAN_ALL, SENSOR_ATTR_SAMPLING_FREQUENCY, &result_value);
-	// if (ret != 0) {
-	// 	printf("Failed to get sampling frequency: %d\n", ret);
-	// 	return 0;
-	// }
-	// int freq_hz = result_value.val1;
+        vl53l5cx_get_range_array(dev, buff_sensor_value , num_zones, img.distances);
+        img.num_zones = num_zones;
 
-	// printf("VL53L5CX Resolution: %dx%d (%d zones)\n", 
-	// 		 num_zones == 64 ? 8 : 4, 
-	// 		 num_zones == 64 ? 8 : 4, 
-	// 		 num_zones);
-	// printf("VL53L5CX Sampling Frequency: %d Hz\n", freq_hz);
-
-    // while (1) {
-    //     ret = sensor_sample_fetch(dev);
-    //     if (ret != 0) {
-    //         printf("Fetch failed: %d\n", ret);
-    //         k_msleep(1000/freq_hz);
-    //         continue;
-    //     }
-
-	// 	printf("\033[H\033[J"); // Clear terminal screen
-    //     printf("Zonal Distances (meters):\n-------------------------\n");
-
-    //     for (int i = 0; i < num_zones; i++) {
-    //         sensor_channel_get(dev, (enum sensor_channel)(SENSOR_CHAN_VL53L5CX_DISTANCE_BASE + i), &result_value);
-
-    //         printf("[%2d]: %d.%03dm  ", i, result_value.val1, result_value.val2 / 1000);
-            
-    //         int grid_width = (num_zones == 64) ? 8 : 4;
-    //         if ((i + 1) % grid_width == 0) printf("\n");
-    //     }
-
-    //     k_msleep(1000/freq_hz);
-    // }
+        sendto(sock, &img, sizeof(img), 0, (struct sockaddr *)&destination_addr, sizeof(destination_addr));
+    }
 
     return 0;
 }
