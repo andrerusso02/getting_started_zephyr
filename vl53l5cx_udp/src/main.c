@@ -100,6 +100,7 @@ int main(void)
         img.num_zones = num_zones;
 
         sendto(sock, &img, sizeof(img), 0, (struct sockaddr *)&destination_addr, sizeof(destination_addr));
+        k_msleep(1000/freq_hz);
     }
 
     return 0;

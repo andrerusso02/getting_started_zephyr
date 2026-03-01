@@ -5,7 +5,7 @@
         lpn-gpios = <&gpioa 5 GPIO_ACTIVE_HIGH>;
         
     };
-    clock-frequency = <100000>;
+    clock-frequency = <400000>;
 };
 
 &i2c1_scl_pb8 {
